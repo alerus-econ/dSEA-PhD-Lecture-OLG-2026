@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OLG Mini-Course Syllabus</title>
+  <style>
+    :root {
+      --font-sans: system-ui, -apple-system, sans-serif;
+      --font-mono: ui-monospace, 'Cascadia Code', monospace;
+      --font-serif: Georgia, 'Times New Roman', serif;
+      --color-text-primary: #1a1a18;
+      --color-text-secondary: #5f5e5a;
+      --color-text-tertiary: #888780;
+      --color-background-primary: #ffffff;
+      --color-background-secondary: #f4f3ee;
+      --color-border-tertiary: rgba(0,0,0,0.12);
+      --color-border-secondary: rgba(0,0,0,0.22);
+      --border-radius-md: 8px;
+      --border-radius-lg: 12px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-text-primary: #e8e6df;
+        --color-text-secondary: #a8a69e;
+        --color-text-tertiary: #6e6d68;
+        --color-background-primary: #1c1c1a;
+        --color-background-secondary: #252523;
+        --color-border-tertiary: rgba(255,255,255,0.10);
+        --color-border-secondary: rgba(255,255,255,0.18);
+      }
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-background-secondary);
+      color: var(--color-text-primary);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+    .page-wrap {
+      max-width: 780px;
+      margin: 0 auto;
+      background: var(--color-background-primary);
+      border-radius: var(--border-radius-lg);
+      border: 0.5px solid var(--color-border-tertiary);
+      padding: 2rem 2.5rem 2.5rem;
+    }
+
+    .root { font-family: var(--font-sans); color: var(--color-text-primary); padding: 0 0 1rem; }
+    .header { padding: 0 0 1.25rem; border-bottom: 0.5px solid var(--color-border-tertiary); margin-bottom: 1.75rem; }
+    .course-tag { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); font-family: var(--font-mono); margin-bottom: 0.4rem; }
+    .course-title { font-family: var(--font-serif); font-size: 24px; font-weight: normal; color: var(--color-text-primary); line-height: 1.25; }
+    .course-meta { font-size: 13px; color: var(--color-text-secondary); margin-top: 0.4rem; }
+
+    .timeline { display: flex; gap: 0; margin-bottom: 2rem; position: relative; }
+    .timeline::before { content: ''; position: absolute; top: 28px; left: 56px; right: 56px; height: 0.5px; background: var(--color-border-secondary); z-index: 0; }
+    .session { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; position: relative; z-index: 1; }
+    .session-dot { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; font-family: var(--font-mono); border: 0.5px solid transparent; transition: all 0.2s ease; position: relative; }
+    .session-dot .hrs { font-size: 10px; position: absolute; bottom: -4px; right: -2px; background: var(--color-background-primary); padding: 0 2px; color: var(--color-text-tertiary); font-family: var(--font-mono); border-radius: 2px; border: 0.5px solid var(--color-border-tertiary); }
+    .session-label { font-size: 11px; text-align: center; color: var(--color-text-secondary); line-height: 1.3; max-width: 90px; }
+    .session.active .session-label { color: var(--color-text-primary); font-weight: 500; }
+
+    .s0 .session-dot { background: #EEEDFE; border-color: #AFA9EC; color: #3C3489; }
+    .s1 .session-dot { background: #E1F5EE; border-color: #5DCAA5; color: #085041; }
+    .s2 .session-dot { background: #FAEEDA; border-color: #EF9F27; color: #633806; }
+    .s3 .session-dot { background: #FBEAF0; border-color: #ED93B1; color: #4B1528; }
+    .s4 .session-dot { background: #EAF3DE; border-color: #97C459; color: #173404; }
+
+    .session.active.s0 .session-dot { transform: scale(1.1); box-shadow: 0 0 0 3px #EEEDFE, 0 0 0 4px #7F77DD; }
+    .session.active.s1 .session-dot { transform: scale(1.1); box-shadow: 0 0 0 3px #E1F5EE, 0 0 0 4px #1D9E75; }
+    .session.active.s2 .session-dot { transform: scale(1.1); box-shadow: 0 0 0 3px #FAEEDA, 0 0 0 4px #BA7517; }
+    .session.active.s3 .session-dot { transform: scale(1.1); box-shadow: 0 0 0 3px #FBEAF0, 0 0 0 4px #D4537E; }
+    .session.active.s4 .session-dot { transform: scale(1.1); box-shadow: 0 0 0 3px #EAF3DE, 0 0 0 4px #639922; }
+
+    .detail-panel { border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.5rem; background: var(--color-background-primary); }
+    .panel-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 0.5px solid var(--color-border-tertiary); }
+    .panel-color-bar { width: 4px; border-radius: 2px; align-self: stretch; flex-shrink: 0; min-height: 60px; }
+    .panel-meta { flex: 1; }
+    .panel-session-num { font-family: var(--font-mono); font-size: 11px; color: var(--color-text-tertiary); margin-bottom: 4px; }
+    .panel-title { font-family: var(--font-serif); font-size: 19px; font-weight: normal; color: var(--color-text-primary); line-height: 1.25; }
+    .panel-subtitle { font-size: 13px; color: var(--color-text-secondary); margin-top: 4px; }
+    .panel-badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 500; flex-shrink: 0; }
+    .badge-own { background: #FBEAF0; color: #993556; border: 0.5px solid #ED93B1; }
+    .badge-lecture { background: var(--color-background-secondary); color: var(--color-text-secondary); border: 0.5px solid var(--color-border-tertiary); }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    @media (max-width: 560px) { .two-col { grid-template-columns: 1fr; } }
+
+    .section-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; }
+    .topics-list { list-style: none; }
+    .topics-list li { font-size: 13px; padding: 5px 0; border-bottom: 0.5px solid var(--color-border-tertiary); color: var(--color-text-primary); display: flex; align-items: flex-start; gap: 8px; line-height: 1.4; }
+    .topics-list li:last-child { border-bottom: none; }
+    .topic-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+    .ref-item { font-size: 12px; color: var(--color-text-secondary); padding: 4px 0; border-bottom: 0.5px solid var(--color-border-tertiary); line-height: 1.4; }
+    .ref-item:last-child { border-bottom: none; }
+    .ref-authors { color: var(--color-text-tertiary); font-style: italic; }
+    .ref-new { font-size: 10px; padding: 1px 5px; border-radius: 3px; background: #E1F5EE; color: #085041; border: 0.5px solid #5DCAA5; margin-left: 4px; vertical-align: middle; }
+    .connections-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 0.75rem; }
+    .conn-tag { font-size: 11px; padding: 3px 9px; border-radius: 20px; border: 0.5px solid var(--color-border-secondary); color: var(--color-text-secondary); cursor: default; }
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+<div class="root">
+
+  <div class="header">
+    <div class="course-tag">PhD Economics &middot; 10 hours &middot; 5 lectures</div>
+    <div class="course-title">Overlapping Generations: Theory, Applications &amp; Computation</div>
+    <div class="course-meta">Tractable OLG foundations &rarr; fiscal &amp; monetary applications &rarr; intergenerational insurance &rarr; computable methods &amp; policy</div>
+  </div>
+
+  <div class="timeline" id="timeline">
+    <div class="session s0 active" onclick="sel(0)">
+      <div class="session-dot">L1<span class="hrs">2h</span></div>
+      <div class="session-label">OLG foundations</div>
+    </div>
+    <div class="session s1" onclick="sel(1)">
+      <div class="session-dot">L2<span class="hrs">2h</span></div>
+      <div class="session-label">Pensions &amp; public debt</div>
+    </div>
+    <div class="session s2" onclick="sel(2)">
+      <div class="session-dot">L3<span class="hrs">2h</span></div>
+      <div class="session-label">Money, inflation &amp; indet.</div>
+    </div>
+    <div class="session s3" onclick="sel(3)">
+      <div class="session-dot">L4<span class="hrs">2h</span></div>
+      <div class="session-label">Intergenerational Insurance</div>
+    </div>
+    <div class="session s4" onclick="sel(4)">
+      <div class="session-dot">L5<span class="hrs">2h</span></div>
+      <div class="session-label">Computable OLG &amp; policy</div>
+    </div>
+  </div>
+
+  <div class="detail-panel" id="panel"></div>
+
+</div>
+</div>
+
+<script>
+const C = ['#7F77DD','#1D9E75','#BA7517','#D4537E','#639922'];
+const data = [
+  {
+    num:'Lecture 1 &middot; 2 hours', badge:'lecture',
+    title:'Tractable OLG: foundations',
+    sub:'Diamond (1965), Samuelson (1958), dynamic efficiency, the golden rule',
+    color: C[0],
+    topics:[
+      'Two-period lives: young save, old consume — endowment economy first',
+      'Competitive equilibrium and capital accumulation dynamics',
+      'Phase diagram, steady states, stability analysis',
+      'Dynamic efficiency, the golden rule and over-accumulation',
+      'Aaron (1966) condition: when PAYG pensions are welfare-improving',
+      'Samuelson (1958) pure-exchange: fiat money as a store of value',
+      'r vs g debate: Blanchard (2019) reinterpretation in OLG'
+    ],
+    refs:[
+      {a:'Diamond, P. (1965)', t:'"National Debt in a Neoclassical Growth Model," <em>AER</em>'},
+      {a:'Samuelson, P. (1958)', t:'"An Exact Consumption-Loan Model," <em>JPE</em>'},
+      {a:'Aaron, H. (1966)', t:'"The Social Insurance Paradox," <em>CJE</em>'},
+      {a:'Blanchard, O. (2019)', t:'"Public Debt and Low Interest Rates," <em>AER</em>', n:true},
+      {a:'de la Croix &amp; Michel (2002)', t:'<em>A Theory of Economic Growth</em>, Cambridge UP'},
+    ],
+    connects:['Pensions &amp; debt (L2)','Money &amp; indet. (L3)']
+  },
+  {
+    num:'Lecture 2 &middot; 2 hours', badge:'lecture',
+    title:'Pensions &amp; public debt',
+    sub:'PAYG vs funded systems, Ricardian equivalence failure, debt sustainability, r-star',
+    color: C[1],
+    topics:[
+      'PAYG pensions: implicit return, crowding out of capital',
+      'Funded pensions: transition costs and welfare analysis',
+      'Why Ricardian equivalence fails in OLG — finite horizons',
+      'Public debt and capital crowding out: Diamond (1965)',
+      'Generational accounts: Auerbach, Gokhale &amp; Kotlikoff (1991)',
+      'Debt sustainability when r &lt; g: Blanchard (2019) and the r-star debate',
+      'Asset bubbles and productive inefficiency: Tirole (1985)',
+      'Recent low r-star evidence and implications for fiscal space'
+    ],
+    refs:[
+      {a:'Blanchard, O. (2019)', t:'"Public Debt and Low Interest Rates," <em>AER</em>', n:true},
+      {a:'Tirole, J. (1985)', t:'"Asset Bubbles and Overlapping Generations," <em>Econometrica</em>'},
+      {a:'Auerbach, Gokhale &amp; Kotlikoff (1991)', t:'"Generational Accounts," <em>BPEA</em>'},
+      {a:'Rachel &amp; Summers (2019)', t:'"On Secular Stagnation in the Industrialized World," <em>BPEA</em>', n:true},
+      {a:'Eggertsson, Mehrotra &amp; Robbins (2019)', t:'"A Model of Secular Stagnation," <em>AEJ:Macro</em>', n:true},
+      {a:'Krueger &amp; Kubler (2006)', t:'"Pareto-Improving Social Security Reform," <em>AER</em>'},
+    ],
+    connects:['OLG core (L1)','Intergenerational insurance (L4)','Computable OLG (L5)']
+  },
+  {
+    num:'Lecture 3 &middot; 2 hours', badge:'lecture',
+    title:'Money, inflation &amp; price indeterminacy',
+    sub:'Fiat money as OLG equilibrium, bubbles, sunspots, endogenous cycles',
+    color: C[2],
+    topics:[
+      'Fiat money in Samuelson (1958): existence and optimality',
+      'Money as a rational bubble: Tirole (1985) conditions',
+      'Optimum quantity of money: Friedman rule in OLG',
+      'Seigniorage, fiscal theory and the price level',
+      'Real indeterminacy and sunspot equilibria — Cass &amp; Shell (1983)',
+      'Endogenous business cycles: Grandmont (1985)',
+      'Nominal vs real indeterminacy: why OLG differs from representative agent',
+      'Monetary policy and equilibrium selection in OLG'
+    ],
+    refs:[
+      {a:'Samuelson, P. (1958)', t:'"An Exact Consumption-Loan Model," <em>JPE</em>'},
+      {a:'Tirole, J. (1985)', t:'"Asset Bubbles and Overlapping Generations," <em>Econometrica</em>'},
+      {a:'Cass &amp; Shell (1983)', t:'"Do Sunspots Matter?," <em>JPE</em>'},
+      {a:'Grandmont, J.-M. (1985)', t:'"On Endogenous Competitive Business Cycles," <em>Econometrica</em>'},
+      {a:'Wallace, N. (1980)', t:'"The OLG Model of Fiat Money," in Kareken &amp; Wallace'},
+      {a:'Woodford, M. (1984)', t:'"Indeterminacy of Equilibrium in the OLG Model," mimeo'},
+    ],
+    connects:['OLG core (L1)','Intergenerational insurance (L4)']
+  },
+  {
+    num:'Lecture 4 &middot; 2 hours', badge:'own',
+    title:'Intergenerational insurance &amp; limited commitment',
+    sub:'Optimal risk sharing when cohorts cannot commit — your research',
+    color: C[3],
+    topics:[
+      'Optimal intergenerational risk sharing: first-best benchmark',
+      'Limited commitment: participation constraints across generations',
+      'Characterization of constrained efficient allocations',
+      'Dynamics under binding and slack participation constraints',
+      'Implications for pension design and reform',
+      'Connection to Kehoe-Levine debt-constrained asset markets',
+      'Relation to Alvarez-Jermann efficiency with default risk',
+      'Open questions: political economy of commitment and reform'
+    ],
+    refs:[
+      {a:'Lancia, Russo &amp; Worrall (2024)', t:'"Intergenerational Insurance," <em>Journal of Political Economy</em>'},
+      {a:'Cappellini, Lancia, Russo &amp; Worrall (2026)', t:'"Sustainable Social Security," working paper', n:true},
+      {a:'Kehoe &amp; Levine (1993)', t:'"Debt-Constrained Asset Markets," <em>RESTUD</em>'},
+      {a:'Alvarez &amp; Jermann (2000)', t:'"Efficiency, Equilibrium, and Asset Pricing with Risk of Default," <em>Econometrica</em>'},
+      {a:'Krueger &amp; Kubler (2006)', t:'"Pareto-Improving Social Security Reform," <em>AER</em>'},
+      {a:'Ligon, Thomas &amp; Worrall (2002)', t:'"Informal Insurance Arrangements with Limited Commitment," <em>RESTUD</em>'},
+    ],
+    connects:['Pensions &amp; debt (L2)','Computable OLG (L5)']
+  },
+  {
+    num:'Lecture 5 &middot; 2 hours', badge:'lecture',
+    title:'Computable OLG &amp; policy experiments',
+    sub:'Auerbach-Kotlikoff, stochastic OLG, heterogeneous agents, live policy exercises',
+    color: C[4],
+    topics:[
+      'Auerbach &amp; Kotlikoff (1987): the benchmark AK deterministic model',
+      'Numerical methods: value function iteration, endogenous gridpoints',
+      'Stochastic OLG: Krueger &amp; Kubler (2004) approach',
+      'Heterogeneous-agent OLG: earnings and wealth inequality over the lifecycle',
+      'Calibration: demographics, idiosyncratic earnings risk, preferences',
+      'Policy experiment 1 — pension reform (PAYG → funded): welfare and transition',
+      'Policy experiment 2 — fiscal consolidation: intergenerational incidence',
+      'Recent HA-OLG: Guvenen et al.; tools: QuantEcon, Julia'
+    ],
+    refs:[
+      {a:'Auerbach &amp; Kotlikoff (1987)', t:'<em>Dynamic Fiscal Policy</em>, Cambridge UP'},
+      {a:'Krueger &amp; Kubler (2004)', t:'"Computing Equilibrium in OLG with Stochastic Production," <em>JEDC</em>'},
+      {a:'Ríos-Rull, J.-V. (1996)', t:'"Life-Cycle Economies and Aggregate Fluctuations," <em>RESTUD</em>'},
+      {a:'Conesa &amp; Krueger (1999)', t:'"Social Security Reform with Heterogeneous Agents," <em>RESTUD</em>'},
+      {a:'Guvenen et al. (2022)', t:'"Use It or Lose It: Efficiency &amp; Redistribution," <em>RESTUD</em>', n:true},
+      {a:'Auclert, Rognlie &amp; Straub (2021)', t:'"Micro Jumps, Macro Humps: Monetary Policy in OLG," <em>NBER</em>', n:true},
+      {a:'Carroll, C. (2006)', t:'"The Method of Endogenous Gridpoints," <em>Economics Letters</em>'},
+    ],
+    connects:['Intergenerational insurance (L4)','Pensions &amp; debt (L2)']
+  }
+];
+
+function sel(i) {
+  document.querySelectorAll('.session').forEach((el,j) => el.classList.toggle('active', i===j));
+  const d = data[i];
+  const badge = d.badge === 'own'
+    ? '<span class="panel-badge badge-own">Your research</span>'
+    : '<span class="panel-badge badge-lecture">Lecture</span>';
+  const topics = d.topics.map(t =>
+    `<li><span class="topic-dot" style="background:${d.color}"></span>${t}</li>`
+  ).join('');
+  const refs = d.refs.map(r =>
+    `<div class="ref-item"><span class="ref-authors">${r.a}</span> ${r.t}${r.n ? '<span class="ref-new">recent</span>' : ''}</div>`
+  ).join('');
+  const conns = d.connects.map(c => `<span class="conn-tag">${c}</span>`).join('');
+  document.getElementById('panel').innerHTML = `
+    <div class="panel-header">
+      <div class="panel-color-bar" style="background:${d.color}"></div>
+      <div class="panel-meta">
+        <div class="panel-session-num">${d.num}</div>
+        <div class="panel-title">${d.title}</div>
+        <div class="panel-subtitle">${d.sub}</div>
+      </div>
+      ${badge}
+    </div>
+    <div class="two-col">
+      <div>
+        <div class="section-label">Topics covered</div>
+        <ul class="topics-list">${topics}</ul>
+        <div style="margin-top:1rem">
+          <div class="section-label">Connects to</div>
+          <div class="connections-row">${conns}</div>
+        </div>
+      </div>
+      <div>
+        <div class="section-label">Key references</div>
+        ${refs}
+      </div>
+    </div>`;
+}
+sel(0);
+</script>
+</body>
+</html>
