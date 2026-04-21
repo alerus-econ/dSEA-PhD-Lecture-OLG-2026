@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OLG Offer Curve — Interactive</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #1a3a6b; --crimson: #9b2335; --teal: #1a6b5a;
+    --amber: #b86a10; --slate: #4a4a6a;
+    --paper: #f6f1e8; --card: #fdfaf4; --border: #d5ccc0;
+    --text: #1a1a2e; --muted: #7a7a9a;
+  }
+  body {
+    background: var(--paper); font-family: 'EB Garamond', Georgia, serif;
+    color: var(--text); min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 2rem 1rem 3rem; gap: 1.4rem;
+  }
+  header { text-align: center; }
+  header h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: 0.02em; }
+  header p { font-style: italic; color: var(--muted); font-size: 0.95rem; margin-top: 0.2rem; }
+
+  .layout {
+    display: grid; grid-template-columns: 1fr 300px; gap: 1.4rem;
+    width: 100%; max-width: 980px; align-items: start;
+  }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 4px; box-shadow: 0 2px 10px rgba(26,26,46,0.06); }
+  .canvas-card { padding: 1.4rem 1.5rem 1rem; }
+  canvas { display: block; width: 100%; height: auto; }
+  .controls { padding: 1.2rem 1.4rem; display: flex; flex-direction: column; gap: 1.15rem; }
+  .ctrl-title { font-size: 0.76rem; font-family: 'JetBrains Mono', monospace; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.4rem; }
+  .param-row { display: flex; flex-direction: column; gap: 0.2rem; }
+  .param-label { display: flex; justify-content: space-between; font-size: 0.9rem; }
+  .param-val { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: var(--navy); font-weight: 500; }
+  .param-val.highlight { color: var(--crimson); }
+  input[type=range] { width: 100%; accent-color: var(--navy); cursor: pointer; }
+
+  .btn-row { display: flex; gap: 0.55rem; }
+  button {
+    flex: 1; padding: 0.45rem 0; border: 1.5px solid var(--navy); border-radius: 3px;
+    background: var(--card); color: var(--navy); font-family: 'EB Garamond', serif;
+    font-size: 0.9rem; cursor: pointer; transition: background 0.12s, color 0.12s;
+  }
+  button:hover { background: var(--navy); color: var(--card); }
+  button.primary { background: var(--navy); color: var(--card); }
+  button.primary:hover { background: #0f2447; }
+
+  .check-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; cursor: pointer; user-select: none; }
+  .check-row input { accent-color: var(--navy); width: 14px; height: 14px; cursor: pointer; }
+
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem 0.8rem; font-size: 0.84rem; }
+  .info-row { display: flex; flex-direction: column; }
+  .info-key { color: var(--muted); font-size: 0.78rem; font-style: italic; }
+  .info-val { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: var(--navy); font-weight: 500; }
+
+  .regime-badge {
+    text-align: center; font-size: 0.82rem; padding: 0.3rem 0.6rem;
+    border-radius: 3px; font-style: italic; border: 1px solid currentColor;
+  }
+  .regime-badge.samuelson { color: var(--crimson); border-color: var(--crimson); background: #fdf0f2; }
+  .regime-badge.classical { color: var(--teal); border-color: var(--teal); background: #f0fdf8; }
+
+  .status-bar {
+    width: 100%; max-width: 980px; font-size: 0.88rem; color: var(--muted);
+    padding: 0 0.2rem; min-height: 1.4rem;
+  }
+  .status-bar strong { color: var(--navy); }
+
+  @media (max-width: 700px) { .layout { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Offer Curve — How it is Traced</h1>
+  <p>Log utility · as the interest rate varies, the optimal bundle traces the offer curve</p>
+</header>
+
+<div class="layout">
+  <div class="card canvas-card">
+    <canvas id="cv" width="580" height="500"></canvas>
+  </div>
+
+  <div class="card controls">
+
+    <div>
+      <div class="ctrl-title">Model</div>
+      <div class="param-row">
+        <div class="param-label">
+          <span>Discount factor <em>β</em></span>
+          <span class="param-val" id="beta-val">0.80</span>
+        </div>
+        <input type="range" id="sl-beta" min="0.25" max="1.30" step="0.01" value="0.80">
+      </div>
+      <div id="regime-badge" class="regime-badge samuelson" style="margin-top:0.6rem;">Samuelson case (β &gt; w₂/w₁)</div>
+    </div>
+
+    <div>
+      <div class="ctrl-title">Interest rate</div>
+      <div class="param-row">
+        <div class="param-label">
+          <span>Price ratio <em>q = p_{t+1}/p_t</em></span>
+          <span class="param-val highlight" id="q-val">1.00</span>
+        </div>
+        <input type="range" id="sl-q" min="0.32" max="4.20" step="0.02" value="1.00">
+      </div>
+      <div style="margin-top:0.4rem;" class="info-grid">
+        <div class="info-row"><span class="info-key">Interest rate r</span><span class="info-val" id="r-val">0.000</span></div>
+        <div class="info-row"><span class="info-key">Autarkic rate r̄</span><span class="info-val" id="ra-val">−0.375</span></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="ctrl-title">Current optimum</div>
+      <div class="info-grid">
+        <div class="info-row"><span class="info-key">c¹* (young)</span><span class="info-val" id="c1opt-val">0.833</span></div>
+        <div class="info-row"><span class="info-key">c²* (old)</span><span class="info-val" id="c2opt-val">0.667</span></div>
+        <div class="info-row"><span class="info-key">savings y</span><span class="info-val" id="y-val">−0.167</span></div>
+        <div class="info-row"><span class="info-key">z = c²−w₂</span><span class="info-val" id="z-val">0.167</span></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="ctrl-title">Display options</div>
+      <label class="check-row"><input type="checkbox" id="chk-ic" checked> Show indifference curve</label>
+      <label class="check-row" style="margin-top:0.3rem;"><input type="checkbox" id="chk-asym"> Show asymptotes</label>
+      <label class="check-row" style="margin-top:0.3rem;"><input type="checkbox" id="chk-budg" checked> Show budget line</label>
+    </div>
+
+    <div>
+      <div class="ctrl-title">Animate</div>
+      <div class="btn-row">
+        <button class="primary" id="btn-anim">▶ Sweep q</button>
+        <button id="btn-reset">↺ Reset</button>
+      </div>
+      <div style="font-size:0.82rem;color:var(--muted);margin-top:0.5rem;font-style:italic;line-height:1.5;">
+        Sweeping q traces the entire offer curve. Autarkic rate shown with dashed marker.
+      </div>
+    </div>
+
+    <div style="font-size:0.82rem;line-height:1.65;color:var(--slate);">
+      <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem;">
+        <div style="width:22px;height:3px;background:var(--navy);border-radius:2px;"></div>
+        <span>Offer curve (locus of optima)</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem;">
+        <div style="width:22px;height:2px;background:var(--amber);"></div>
+        <span>Budget line at current q</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem;">
+        <div style="width:22px;height:2px;background:#9a9ab0;background-image:repeating-linear-gradient(90deg,#9a9ab0 0,#9a9ab0 5px,transparent 5px,transparent 9px);"></div>
+        <span>Resource constraint (r = 0)</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        <div style="width:22px;height:2px;background:#b0c0e0;background-image:repeating-linear-gradient(90deg,#b0c0e0 0,#b0c0e0 5px,transparent 5px,transparent 9px);"></div>
+        <span>Indifference curve</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="status-bar" id="status">Drag the <strong>q slider</strong> to rotate the budget line — the optimal bundle traces the offer curve.</div>
+
+<script>
+const w1 = 1.0, w2 = 0.5;
+const S = w1 + w2;
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const CW = cv.width, CH = cv.height;
+const PAD = { top: 44, right: 104, bottom: 56, left: 58 };
+const xMin = 0, xMax = 1.90, yMin = 0, yMax = 1.90;
+
+function tx(x) { return PAD.left + (x - xMin) / (xMax - xMin) * (CW - PAD.left - PAD.right); }
+function ty(y) { return PAD.top + (1 - (y - yMin) / (yMax - yMin)) * (CH - PAD.top - PAD.bottom); }
+
+let beta = 0.80, q = 1.00;
+let animTimer = null;
+
+function offerC2(c1, b) {
+  const d = (1 + b) * c1 - w1;
+  if (d < 1e-9) return Infinity;
+  return b * w2 * c1 / d;
+}
+
+function optimalPt(qq, b) {
+  const c1 = (w1 + qq * w2) / (1 + b);
+  const c2 = b * (w1 + qq * w2) / ((1 + b) * qq);
+  return { c1, c2 };
+}
+
+function monetaryEq(b) { return { c1: S / (1 + b), c2: b * S / (1 + b) }; }
+function autarkicQ(b) { return b * w1 / w2; }
+
+// ── Draw scene ────────────────────────────────────────────────────────────────
+function draw() {
+  ctx.clearRect(0, 0, CW, CH);
+  ctx.fillStyle = '#fdfaf4';
+  ctx.fillRect(0, 0, CW, CH);
+
+  const b = beta, qq = q;
+  const showIC = document.getElementById('chk-ic').checked;
+  const showAsym = document.getElementById('chk-asym').checked;
+  const showBudg = document.getElementById('chk-budg').checked;
+  const asymV = w1 / (1 + b);
+  const asymH = b * w2 / (1 + b);
+  const me = monetaryEq(b);
+  const pt = optimalPt(qq, b);
+  const qa = autarkicQ(b);
+  const isSamuelson = b > w2 / w1;
+
+  // Asymptotes
+  if (showAsym) {
+    ctx.save();
+    ctx.setLineDash([3, 5]); ctx.strokeStyle = '#c0c0cc'; ctx.lineWidth = 0.9; ctx.globalAlpha = 0.65;
+    ctx.beginPath(); ctx.moveTo(tx(asymV), ty(0)); ctx.lineTo(tx(asymV), ty(yMax)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(tx(0), ty(asymH)); ctx.lineTo(tx(xMax), ty(asymH)); ctx.stroke();
+    ctx.restore();
+    lbl(`w₁/(1+β)≈${asymV.toFixed(2)}`, tx(asymV) + 3, ty(yMax) + 3, 'left', 'top', 9.5, true, '#aaaacc');
+    lbl(`β·w₂/(1+β)≈${asymH.toFixed(2)}`, tx(xMax) - 2, ty(asymH) - 3, 'right', 'bottom', 9.5, true, '#aaaacc');
+  }
+
+  // Resource constraint
+  ctx.save();
+  ctx.setLineDash([7, 5]); ctx.strokeStyle = '#8a8aaa'; ctx.lineWidth = 1.4; ctx.globalAlpha = 0.85;
+  ctx.beginPath();
+  ctx.moveTo(tx(Math.max(0, S - yMax)), ty(Math.min(yMax, S)));
+  ctx.lineTo(tx(Math.min(xMax, S)), ty(Math.max(0, S - xMax)));
+  ctx.stroke();
+  ctx.restore();
+  lbl('c₁ + c₂ = w₁+w₂', tx(0.04), ty(S - 0.05), 'left', 'bottom', 10.5, true, '#7a7aaa');
+
+  // 45° reference
+  ctx.save();
+  ctx.setLineDash([2, 6]); ctx.strokeStyle = '#c5c5cc'; ctx.lineWidth = 0.8; ctx.globalAlpha = 0.4;
+  ctx.beginPath(); ctx.moveTo(tx(0), ty(0)); ctx.lineTo(tx(1.85), ty(1.85)); ctx.stroke();
+  ctx.restore();
+
+  // Autarkic rate budget line (faint reference)
+  if (Math.abs(qq - qa) > 0.05) {
+    drawBudget(qa, '#9a9ab0', 0.9, [4, 6]);
+    // label on this line
+    const pa = optimalPt(qa, b);
+    ctx.save(); ctx.fillStyle = '#9a9ab0'; ctx.globalAlpha = 0.6;
+    ctx.beginPath(); ctx.arc(tx(w1), ty(w2), 4, 0, 2 * Math.PI); ctx.fill();
+    ctx.restore();
+  }
+
+  // Budget line at current q
+  if (showBudg) {
+    drawBudget(qq, '#b86a10', 1.8, []);
+  }
+
+  // Indifference curve at current optimal point
+  if (showIC && pt.c1 > asymV + 0.01 && pt.c2 > 0.01 && pt.c1 < xMax && pt.c2 < yMax) {
+    drawIC(pt.c1, pt.c2, b);
+  }
+
+  // Offer curve
+  ctx.save(); ctx.strokeStyle = '#1a3a6b'; ctx.lineWidth = 2.7; ctx.lineJoin = 'round';
+  ctx.beginPath(); let first = true;
+  for (let x = asymV + 0.004; x <= xMax + 0.02; x += 0.003) {
+    const y = offerC2(x, b);
+    if (!isFinite(y) || y < yMin - 0.1 || y > yMax + 0.1) { first = true; continue; }
+    if (first) { ctx.moveTo(tx(x), ty(y)); first = false; } else ctx.lineTo(tx(x), ty(y));
+  }
+  ctx.stroke(); ctx.restore();
+
+  // Offer curve label
+  const ocX = 1.45, ocY = offerC2(ocX, b);
+  if (ocY >= yMin && ocY <= yMax) {
+    lbl('Offer curve', tx(ocX) + 6, ty(ocY), 'left', 'middle', 12, false, '#1a3a6b');
+  }
+
+  // Tangency dot on offer curve (the optimal point)
+  if (pt.c1 > asymV + 0.01 && pt.c2 >= yMin && pt.c2 <= yMax && pt.c1 <= xMax) {
+    // Highlight tangency
+    ctx.save();
+    ctx.fillStyle = '#9b2335';
+    ctx.beginPath(); ctx.arc(tx(pt.c1), ty(pt.c2), 7, 0, 2 * Math.PI); ctx.fill();
+    ctx.strokeStyle = '#fdfaf4'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(tx(pt.c1), ty(pt.c2), 7, 0, 2 * Math.PI); ctx.stroke();
+    ctx.restore();
+    // Dashed drop lines to axes
+    ctx.save(); ctx.setLineDash([3, 4]); ctx.strokeStyle = '#9b2335'; ctx.lineWidth = 0.9; ctx.globalAlpha = 0.45;
+    ctx.beginPath(); ctx.moveTo(tx(pt.c1), ty(pt.c2)); ctx.lineTo(tx(pt.c1), ty(0)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(tx(pt.c1), ty(pt.c2)); ctx.lineTo(tx(0), ty(pt.c2)); ctx.stroke();
+    ctx.restore();
+    // Tick on x-axis
+    ctx.save(); ctx.strokeStyle = '#9b2335'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(tx(pt.c1), ty(0) - 3); ctx.lineTo(tx(pt.c1), ty(0) + 3); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(tx(0) - 3, ty(pt.c2)); ctx.lineTo(tx(0) + 3, ty(pt.c2)); ctx.stroke();
+    ctx.restore();
+    lbl(`${pt.c1.toFixed(2)}`, tx(pt.c1), ty(0) + 7, 'center', 'top', 10.5, false, '#9b2335');
+    lbl(`${pt.c2.toFixed(2)}`, tx(0) - 6, ty(pt.c2), 'right', 'middle', 10.5, false, '#9b2335');
+  }
+
+  // Endowment (autarky) point
+  ctx.save(); ctx.fillStyle = '#1a3a6b';
+  ctx.beginPath(); ctx.arc(tx(w1), ty(w2), 5.5, 0, 2 * Math.PI); ctx.fill();
+  ctx.strokeStyle = '#fdfaf4'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(tx(w1), ty(w2), 5.5, 0, 2 * Math.PI); ctx.stroke();
+  ctx.restore();
+  lbl('Autarky', tx(w1) + 8, ty(w2) - 2, 'left', 'bottom', 11.5, false, '#1a3a6b');
+  lbl(`(${w1.toFixed(1)}, ${w2.toFixed(1)})  r = r̄`, tx(w1) + 8, ty(w2) + 10, 'left', 'top', 9.5, true, '#5a5a8a');
+
+  // Monetary equilibrium point (if Samuelson and visible)
+  if (isSamuelson && me.c1 > asymV + 0.01 && me.c1 < xMax && me.c2 < yMax && me.c2 > 0 && Math.abs(me.c1 - w1) > 0.02) {
+    ctx.save(); ctx.fillStyle = '#c06020';
+    ctx.beginPath(); ctx.arc(tx(me.c1), ty(me.c2), 5, 0, 2 * Math.PI); ctx.fill();
+    ctx.strokeStyle = '#fdfaf4'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(tx(me.c1), ty(me.c2), 5, 0, 2 * Math.PI); ctx.stroke();
+    ctx.restore();
+    lbl('Monetary eq. (r=0)', tx(me.c1) - 8, ty(me.c2) - 8, 'right', 'bottom', 10.5, true, '#c06020');
+  }
+
+  // Axes
+  ctx.save(); ctx.strokeStyle = '#2a2a3e'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(PAD.left, ty(0)); ctx.lineTo(CW - PAD.right + 18, ty(0)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(tx(0), PAD.top - 10); ctx.lineTo(tx(0), CH - PAD.bottom + 18); ctx.stroke();
+  ctx.restore();
+  lbl('c¹ₜ  (consumption when young)', CW - PAD.right + 22, ty(0), 'left', 'middle', 12.5);
+  lbl('c²ₜ  (when old)', tx(0), PAD.top - 14, 'center', 'bottom', 12.5);
+  lbl('0', tx(0) - 5, ty(0) + 5, 'right', 'top', 11, false, '#9a9aaa');
+
+  [0.5, 1.0, 1.5].forEach(v => {
+    ctx.save(); ctx.strokeStyle = '#aaa'; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(tx(v), ty(0) - 3); ctx.lineTo(tx(v), ty(0) + 3); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(tx(0) - 3, ty(v)); ctx.lineTo(tx(0) + 3, ty(v)); ctx.stroke();
+    ctx.restore();
+    lbl(v.toFixed(1), tx(v), ty(0) + 5, 'center', 'top', 10, false, '#777');
+    lbl(v.toFixed(1), tx(0) - 5, ty(v), 'right', 'middle', 10, false, '#777');
+  });
+
+  updateInfo(b, qq, pt, me, isSamuelson);
+}
+
+function drawBudget(qq, col, lw, dash) {
+  // c2 = (w2 + w1/q) - c1/q, passes through (w1,w2)
+  ctx.save();
+  if (dash.length) ctx.setLineDash(dash);
+  ctx.strokeStyle = col; ctx.lineWidth = lw;
+  ctx.beginPath(); let first = true;
+  for (let x = xMin; x <= xMax; x += 0.01) {
+    const y = (w2 + w1 / qq) - x / qq;
+    if (y < yMin - 0.1 || y > yMax + 0.1) { first = true; continue; }
+    if (x < 0) { first = true; continue; }
+    if (first) { ctx.moveTo(tx(x), ty(y)); first = false; } else ctx.lineTo(tx(x), ty(y));
+  }
+  ctx.stroke(); ctx.restore();
+}
+
+function drawIC(c1opt, c2opt, b) {
+  // IC: c2 = (c1opt/c1)^(1/b) * c2opt
+  ctx.save();
+  ctx.setLineDash([5, 4]); ctx.strokeStyle = '#6090c0'; ctx.lineWidth = 1.4; ctx.globalAlpha = 0.6;
+  ctx.beginPath(); let first = true;
+  for (let x = 0.02; x <= xMax; x += 0.005) {
+    const y = Math.pow(c1opt / x, 1 / b) * c2opt;
+    if (!isFinite(y) || y < yMin - 0.1 || y > yMax + 0.5) { first = true; continue; }
+    if (first) { ctx.moveTo(tx(x), ty(y)); first = false; } else ctx.lineTo(tx(x), ty(y));
+  }
+  ctx.stroke(); ctx.restore();
+}
+
+function lbl(text, px, py, align, base, size, italic, color) {
+  ctx.save();
+  ctx.font = `${italic ? 'italic ' : ''}${size}px 'EB Garamond', serif`;
+  ctx.textAlign = align || 'left'; ctx.textBaseline = base || 'middle';
+  ctx.fillStyle = color || '#1a1a2e';
+  ctx.fillText(text, px, py); ctx.restore();
+}
+
+function updateInfo(b, qq, pt, me, isSamuelson) {
+  const r = 1 / qq - 1;
+  const ra = w2 / (b * w1) - 1;
+  document.getElementById('q-val').textContent = qq.toFixed(2);
+  document.getElementById('r-val').textContent = r.toFixed(3);
+  document.getElementById('ra-val').textContent = ra.toFixed(3);
+  document.getElementById('c1opt-val').textContent = (pt.c1 > 0 && pt.c1 < 99) ? pt.c1.toFixed(3) : '—';
+  document.getElementById('c2opt-val').textContent = (pt.c2 > 0 && pt.c2 < 99) ? pt.c2.toFixed(3) : '—';
+  document.getElementById('y-val').textContent = (pt.c1 > 0 && pt.c1 < 99) ? (pt.c1 - w1).toFixed(3) : '—';
+  document.getElementById('z-val').textContent = (pt.c2 > 0 && pt.c2 < 99) ? (pt.c2 - w2).toFixed(3) : '—';
+
+  const badge = document.getElementById('regime-badge');
+  badge.className = 'regime-badge ' + (isSamuelson ? 'samuelson' : 'classical');
+  badge.textContent = isSamuelson ? 'Samuelson case (β > w₂/w₁)' : 'Classical case (β < w₂/w₁)';
+
+  const atMonetary = Math.abs(qq - 1) < 0.03;
+  const atAutarky = Math.abs(qq - b * w1 / w2) < 0.05;
+  let msg = `Budget line slope = −1/q = −<strong>${(1 / qq).toFixed(2)}</strong> (gross interest 1+r = <strong>${(1/qq).toFixed(2)}</strong>). `;
+  if (atAutarky) msg += `At the <strong>autarkic</strong> rate — optimal bundle is at autarky (w₁, w₂).`;
+  else if (atMonetary && isSamuelson) msg += `At r = 0 — optimal bundle is the <strong>monetary equilibrium</strong>.`;
+  else msg += `Optimal (c¹*, c²*) = (<strong>${pt.c1.toFixed(3)}</strong>, <strong>${pt.c2.toFixed(3)}</strong>).`;
+  document.getElementById('status').innerHTML = msg;
+}
+
+// ── Animation ─────────────────────────────────────────────────────────────────
+let animDir = -1, animQ = 4.0;
+function stopAnim() {
+  if (animTimer) { clearTimeout(animTimer); animTimer = null; }
+  document.getElementById('btn-anim').textContent = '▶ Sweep q';
+  document.getElementById('btn-anim').className = 'primary';
+}
+
+function doAnimFrame() {
+  animQ += animDir * 0.04;
+  if (animQ < 0.32) { animQ = 0.32; animDir = 1; }
+  if (animQ > 4.2) { animQ = 4.2; animDir = -1; }
+  q = animQ;
+  document.getElementById('sl-q').value = q.toFixed(2);
+  draw();
+  animTimer = setTimeout(doAnimFrame, 40);
+}
+
+function startAnim() {
+  if (animTimer) { stopAnim(); return; }
+  document.getElementById('btn-anim').textContent = '⏸ Pause';
+  document.getElementById('btn-anim').className = '';
+  animQ = q; animDir = -1;
+  doAnimFrame();
+}
+
+// ── Events ────────────────────────────────────────────────────────────────────
+document.getElementById('sl-beta').addEventListener('input', function () {
+  beta = parseFloat(this.value);
+  document.getElementById('beta-val').textContent = beta.toFixed(2);
+  draw();
+});
+document.getElementById('sl-q').addEventListener('input', function () {
+  q = parseFloat(this.value);
+  draw();
+});
+['chk-ic', 'chk-asym', 'chk-budg'].forEach(id => {
+  document.getElementById(id).addEventListener('change', draw);
+});
+document.getElementById('btn-anim').addEventListener('click', startAnim);
+document.getElementById('btn-reset').addEventListener('click', function () {
+  stopAnim();
+  beta = 0.80; q = 1.00;
+  document.getElementById('sl-beta').value = '0.80';
+  document.getElementById('sl-q').value = '1.00';
+  document.getElementById('beta-val').textContent = '0.80';
+  draw();
+});
+
+draw();
+</script>
+</body>
+</html>
