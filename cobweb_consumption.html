@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OLG Cobweb — Consumption Space</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #1a3a6b; --crimson: #9b2335; --teal: #1a6b5a;
+    --amber: #b86a10; --slate: #4a4a6a;
+    --paper: #f6f1e8; --card: #fdfaf4; --border: #d5ccc0;
+    --text: #1a1a2e; --muted: #7a7a9a;
+  }
+  body {
+    background: var(--paper); font-family: 'EB Garamond', Georgia, serif;
+    color: var(--text); min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 2rem 1rem 3rem; gap: 1.4rem;
+  }
+  header { text-align: center; }
+  header h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: 0.02em; }
+  header p { font-style: italic; color: var(--muted); font-size: 0.95rem; margin-top: 0.2rem; }
+
+  .layout {
+    display: grid; grid-template-columns: 1fr 300px; gap: 1.4rem;
+    width: 100%; max-width: 980px; align-items: start;
+  }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 4px; box-shadow: 0 2px 10px rgba(26,26,46,0.06); }
+  .canvas-card { padding: 1.4rem 1.5rem 1rem; }
+  canvas { display: block; width: 100%; height: auto; }
+  .controls { padding: 1.2rem 1.4rem; display: flex; flex-direction: column; gap: 1.15rem; }
+  .ctrl-title { font-size: 0.76rem; font-family: 'JetBrains Mono', monospace; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.4rem; }
+  .param-row { display: flex; flex-direction: column; gap: 0.2rem; }
+  .param-label { display: flex; justify-content: space-between; font-size: 0.9rem; }
+  .param-val { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: var(--navy); font-weight: 500; }
+  input[type=range] { width: 100%; accent-color: var(--navy); cursor: pointer; }
+  .btn-row { display: flex; gap: 0.55rem; }
+  button {
+    flex: 1; padding: 0.45rem 0; border: 1.5px solid var(--navy); border-radius: 3px;
+    background: var(--card); color: var(--navy); font-family: 'EB Garamond', serif;
+    font-size: 0.9rem; cursor: pointer; transition: background 0.12s, color 0.12s;
+  }
+  button:hover { background: var(--navy); color: var(--card); }
+  button.primary { background: var(--navy); color: var(--card); }
+  button.primary:hover { background: #0f2447; }
+
+  .regime-badge {
+    text-align: center; font-size: 0.82rem; padding: 0.28rem 0.6rem;
+    border-radius: 3px; font-style: italic; border: 1px solid currentColor;
+  }
+  .regime-badge.samuelson { color: var(--crimson); border-color: var(--crimson); background: #fdf0f2; }
+  .regime-badge.classical { color: var(--teal); border-color: var(--teal); background: #f0fdf8; }
+
+  .stability-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .stab-box {
+    padding: 0.5rem 0.6rem; border-radius: 3px; border: 1px solid var(--border);
+    background: #f2ede4;
+  }
+  .stab-box.stable { border-color: var(--teal); background: #eef7f4; }
+  .stab-box.unstable { border-color: var(--crimson); background: #fdf0f2; }
+  .stab-label { font-size: 0.74rem; font-family: 'JetBrains Mono', monospace; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .stab-val { font-size: 0.9rem; font-weight: 500; margin-top: 0.1rem; }
+  .stab-val.stable { color: var(--teal); }
+  .stab-val.unstable { color: var(--crimson); }
+  .stab-verdict { font-size: 0.75rem; font-style: italic; color: var(--slate); margin-top: 0.1rem; }
+
+  .status-bar {
+    width: 100%; max-width: 980px; font-size: 0.88rem; color: var(--muted); padding: 0 0.2rem; min-height: 1.4rem;
+  }
+  .status-bar strong { color: var(--navy); }
+
+  .table-wrap { width: 100%; max-width: 980px; overflow-x: auto; border-radius: 4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
+  thead tr { background: var(--navy); color: var(--card); }
+  thead th { padding: 0.5rem 0.8rem; font-weight: 500; text-align: center; font-style: italic; white-space: nowrap; }
+  tbody tr { border-bottom: 1px solid var(--border); }
+  tbody tr:nth-child(even) { background: #f2ede4; }
+  tbody td { padding: 0.36rem 0.8rem; text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--slate); }
+  tbody tr.active td { background: #e6dfd4; color: var(--text); font-weight: 500; }
+
+  @media (max-width: 700px) { .layout { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Cobweb Algorithm in Consumption Space</h1>
+  <p>OLG · log utility · β = 0.75 · endowments (w₁, w₂) = (1, 0.3)</p>
+</header>
+
+<div class="layout">
+  <div class="card canvas-card">
+    <canvas id="cv" width="580" height="500"></canvas>
+  </div>
+
+  <div class="card controls">
+    <div>
+      <div class="ctrl-title">Model</div>
+      <div class="param-row">
+        <div class="param-label">
+          <span>Discount factor <em>β</em></span>
+          <span class="param-val" id="beta-val">0.75</span>
+        </div>
+        <input type="range" id="sl-beta" min="0.10" max="1.30" step="0.01" value="0.75">
+      </div>
+      <div id="regime-badge" class="regime-badge samuelson" style="margin-top:0.6rem;">Samuelson (β &gt; w₂/w₁ = 0.3)</div>
+    </div>
+
+    <div>
+      <div class="ctrl-title">Starting value</div>
+      <div class="param-row">
+        <div class="param-label">
+          <span>Initial <em>c²₀</em> (gen. 0 old)</span>
+          <span class="param-val" id="c20-val">0.450</span>
+        </div>
+        <input type="range" id="sl-c20" min="0.305" max="1.20" step="0.005" value="0.45">
+      </div>
+      <div style="font-size:0.8rem;color:var(--muted);margin-top:0.3rem;font-style:italic;" id="c20-hint">
+        Below monetary eq. → converges to autarky
+      </div>
+    </div>
+
+    <div>
+      <div class="ctrl-title">Stability at equilibria</div>
+      <div class="stability-grid">
+        <div class="stab-box" id="stab-autarky">
+          <div class="stab-label">Autarky</div>
+          <div class="stab-val" id="stab-a-val">|f ′| = 0.400</div>
+          <div class="stab-verdict" id="stab-a-verdict">▸ stable</div>
+        </div>
+        <div class="stab-box" id="stab-me">
+          <div class="stab-label">Monetary eq.</div>
+          <div class="stab-val" id="stab-m-val">|f ′| = 2.500</div>
+          <div class="stab-verdict" id="stab-m-verdict">▸ unstable</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="ctrl-title">Playback</div>
+      <div class="param-row">
+        <div class="param-label"><span>Steps</span><span class="param-val" id="nsteps-val">8</span></div>
+        <input type="range" id="sl-nsteps" min="1" max="14" step="1" value="8">
+      </div>
+      <div class="param-row" style="margin-top:0.5rem;">
+        <div class="param-label"><span>Speed</span><span class="param-val" id="speed-val">Normal</span></div>
+        <input type="range" id="sl-speed" min="1" max="5" step="1" value="3">
+      </div>
+    </div>
+
+    <div>
+      <div class="btn-row">
+        <button class="primary" id="btn-play">▶ Play</button>
+        <button id="btn-step">Step →</button>
+      </div>
+      <div class="btn-row" style="margin-top:0.5rem;">
+        <button id="btn-reset">↺ Reset</button>
+        <button id="btn-all">Show all</button>
+      </div>
+    </div>
+
+    <div style="font-size:0.82rem;line-height:1.65;color:var(--slate);">
+      <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem;">
+        <div style="width:22px;height:2.5px;background:var(--teal);border-radius:1px;"></div>
+        <span><strong>Vertical</strong>: offer curve (generation optimises)</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        <div style="width:22px;height:2.5px;background:var(--crimson);border-radius:1px;"></div>
+        <span><strong>Horizontal</strong>: resource clearing</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar" id="status">Press <strong>Play</strong> or <strong>Step →</strong> to run the algorithm.</div>
+
+<div class="table-wrap card" style="padding:0;overflow:hidden;">
+  <table>
+    <thead>
+      <tr>
+        <th>t</th>
+        <th>c¹ₜ</th>
+        <th>c²ₜ</th>
+        <th>yₜ = c¹ₜ − w₁</th>
+        <th>zₜ = c²ₜ − w₂</th>
+        <th>1 + rₜ</th>
+        <th>dist. to autarky</th>
+      </tr>
+    </thead>
+    <tbody id="tbl-body"></tbody>
+  </table>
+</div>
+
+<script>
+const w1 = 1.0, w2 = 0.3, S = w1 + w2;
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const CW = cv.width, CH = cv.height;
+const PAD = { top: 44, right: 104, bottom: 56, left: 58 };
+const xMin = 0, xMax = 1.90, yMin = 0, yMax = 1.90;
+
+function tx(x) { return PAD.left + (x - xMin) / (xMax - xMin) * (CW - PAD.left - PAD.right); }
+function ty(y) { return PAD.top + (1 - (y - yMin) / (yMax - yMin)) * (CH - PAD.top - PAD.bottom); }
+
+let beta = 0.75, c20 = 0.45, nSteps = 8, speedLevel = 3;
+let currentStep = 0, animSubStep = 0, animTimer = null;
+let path = [];
+
+function offerC2(c1, b) {
+  const d = (1 + b) * c1 - w1;
+  if (d < 1e-9) return Infinity;
+  return b * w2 * c1 / d;
+}
+
+function monetaryEq(b) { return { c1: S / (1 + b), c2: b * S / (1 + b) }; }
+
+// Stability derivative of the cobweb map at equilibrium c2*
+// f(c2) = offerC2(S-c2, b) = b*w2*(S-c2)/((1+b)*(S-c2)-w1)
+// f'(c2) = d/dc2[ b*w2*(S-c2)/((1+b)*(S-c2)-w1) ]
+// Let u=S-c2: f = b*w2*u/((1+b)*u-w1), du/dc2=-1
+// df/du = b*w2*[(1+b)*u-w1 - u*(1+b)] / ((1+b)*u-w1)^2 = b*w2*(-w1)/((1+b)*u-w1)^2
+// df/dc2 = df/du * (-1) = b*w1*w2 / ((1+b)*(S-c2)-w1)^2
+function cobwebDeriv(c2_star, b) {
+  const c1 = S - c2_star;
+  const denom = (1 + b) * c1 - w1;
+  if (Math.abs(denom) < 1e-9) return Infinity;
+  return b * w1 * w2 / (denom * denom);
+}
+
+function buildPath() {
+  path = [];
+  let c2prev = c20;
+  const n = parseInt(document.getElementById('sl-nsteps').value);
+  for (let i = 0; i < n; i++) {
+    const c1 = S - c2prev;
+    const asymV = w1 / (1 + beta);
+    if (c1 <= asymV + 1e-5 || c1 < 0.01) {
+      path.push({ c1, c2prev, c2next: NaN, diverged: true });
+      break;
+    }
+    const c2next = offerC2(c1, beta);
+    if (!isFinite(c2next) || c2next > 3.5) {
+      path.push({ c1, c2prev, c2next: Math.min(c2next, 3.5), diverged: true });
+      break;
+    }
+    path.push({ c1, c2prev, c2next, diverged: false });
+    if (Math.abs(c2next - w2) < 0.0008 && Math.abs(c1 - w1) < 0.0008) break;
+    c2prev = c2next;
+  }
+}
+
+// ── Canvas drawing ────────────────────────────────────────────────────────────
+function arrow(x1, y1, x2, y2, col, lw) {
+  const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy);
+  if (len < 2) return;
+  const ux = dx / len, uy = dy / len, hs = 6.5;
+  ctx.save();
+  ctx.strokeStyle = col; ctx.lineWidth = lw || 2;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - hs * ux + hs * 0.42 * uy, y2 - hs * uy - hs * 0.42 * ux);
+  ctx.lineTo(x2 - hs * ux - hs * 0.42 * uy, y2 - hs * uy + hs * 0.42 * ux);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function dot(x, y, col, r) {
+  ctx.save(); ctx.fillStyle = col;
+  ctx.beginPath(); ctx.arc(tx(x), ty(y), r || 3.5, 0, 2 * Math.PI); ctx.fill();
+  ctx.restore();
+}
+
+function lbl(text, px, py, align, base, size, italic, color) {
+  ctx.save();
+  ctx.font = `${italic ? 'italic ' : ''}${size || 12}px 'EB Garamond', serif`;
+  ctx.textAlign = align || 'left'; ctx.textBaseline = base || 'middle';
+  ctx.fillStyle = color || '#1a1a2e';
+  ctx.fillText(text, px, py); ctx.restore();
+}
+
+function drawScene(upToStep, subStep) {
+  ctx.clearRect(0, 0, CW, CH);
+  ctx.fillStyle = '#fdfaf4'; ctx.fillRect(0, 0, CW, CH);
+
+  const b = beta;
+  const asymV = w1 / (1 + b);
+  const me = monetaryEq(b);
+  const isSamuelson = b > w2 / w1;
+
+  // Asymptotes (faint)
+  ctx.save(); ctx.setLineDash([3, 5]); ctx.strokeStyle = '#d0d0dc'; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.moveTo(tx(asymV), ty(0)); ctx.lineTo(tx(asymV), ty(yMax)); ctx.stroke();
+  ctx.restore();
+
+  // 45° line
+  ctx.save(); ctx.setLineDash([2, 6]); ctx.strokeStyle = '#c8c8d0'; ctx.lineWidth = 0.8; ctx.globalAlpha = 0.5;
+  ctx.beginPath(); ctx.moveTo(tx(0), ty(0)); ctx.lineTo(tx(1.85), ty(1.85)); ctx.stroke();
+  ctx.restore();
+
+  // Resource constraint
+  ctx.save(); ctx.setLineDash([7, 5]); ctx.strokeStyle = '#8a8aaa'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(tx(Math.max(0, S - yMax)), ty(Math.min(yMax, S)));
+  ctx.lineTo(tx(Math.min(xMax, S)), ty(Math.max(0, S - xMax)));
+  ctx.stroke(); ctx.restore();
+  lbl('c₁+c₂ = w₁+w₂', tx(0.04), ty(S - 0.05), 'left', 'bottom', 10.5, true, '#7a7aaa');
+
+  // Offer curve
+  ctx.save(); ctx.strokeStyle = '#1a3a6b'; ctx.lineWidth = 2.6; ctx.lineJoin = 'round';
+  ctx.beginPath(); let first = true;
+  for (let x = asymV + 0.004; x <= xMax + 0.02; x += 0.003) {
+    const y = offerC2(x, b);
+    if (!isFinite(y) || y < yMin - 0.1 || y > yMax + 0.1) { first = true; continue; }
+    if (first) { ctx.moveTo(tx(x), ty(y)); first = false; } else ctx.lineTo(tx(x), ty(y));
+  }
+  ctx.stroke(); ctx.restore();
+  const ocX = 1.45, ocY = offerC2(ocX, b);
+  if (ocY >= 0 && ocY <= yMax) lbl('Offer curve', tx(ocX) + 6, ty(ocY), 'left', 'middle', 12, false, '#1a3a6b');
+
+  // Equilibrium points
+  // Autarky
+  ctx.save(); ctx.fillStyle = '#1a3a6b';
+  ctx.beginPath(); ctx.arc(tx(w1), ty(w2), 5.5, 0, 2 * Math.PI); ctx.fill();
+  ctx.strokeStyle = '#fdfaf4'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(tx(w1), ty(w2), 5.5, 0, 2 * Math.PI); ctx.stroke();
+  ctx.restore();
+  lbl('Autarky', tx(w1) + 8, ty(w2) - 2, 'left', 'bottom', 11.5, false, '#1a3a6b');
+  lbl('(stable)', tx(w1) + 8, ty(w2) + 10, 'left', 'top', 9.5, true, isSamuelson ? '#1a6b5a' : '#9b2335');
+
+  // Monetary equilibrium
+  if (isSamuelson && me.c1 > asymV + 0.02 && me.c1 < xMax && me.c2 < yMax && me.c2 > 0) {
+    ctx.save(); ctx.fillStyle = '#9b2335';
+    ctx.beginPath(); ctx.arc(tx(me.c1), ty(me.c2), 5.5, 0, 2 * Math.PI); ctx.fill();
+    ctx.strokeStyle = '#fdfaf4'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(tx(me.c1), ty(me.c2), 5.5, 0, 2 * Math.PI); ctx.stroke();
+    ctx.restore();
+    lbl('Monetary eq.', tx(me.c1) - 8, ty(me.c2) - 2, 'right', 'bottom', 11.5, false, '#9b2335');
+    lbl('(unstable)', tx(me.c1) - 8, ty(me.c2) + 10, 'right', 'top', 9.5, true, '#9b2335');
+    // Vertical dashed line through monetary eq
+    ctx.save(); ctx.setLineDash([3, 4]); ctx.strokeStyle = '#9b2335'; ctx.lineWidth = 0.8; ctx.globalAlpha = 0.3;
+    ctx.beginPath(); ctx.moveTo(tx(me.c1), ty(0)); ctx.lineTo(tx(me.c1), ty(yMax)); ctx.stroke();
+    ctx.restore();
+  }
+
+  // Starting point
+  const c1start = S - c20;
+  if (c1start >= xMin && c1start <= xMax && c20 >= yMin && c20 <= yMax) {
+    dot(c1start, c20, '#b86a10', 5);
+    lbl('start', tx(c1start) + 6, ty(c20) - 2, 'left', 'bottom', 10, true, '#b86a10');
+  }
+
+  // Draw cobweb
+  for (let i = 0; i < upToStep && i < path.length; i++) drawIter(i, 2);
+  if (upToStep < path.length) drawIter(upToStep, subStep);
+
+  // Axes
+  ctx.save(); ctx.strokeStyle = '#2a2a3e'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(PAD.left, ty(0)); ctx.lineTo(CW - PAD.right + 18, ty(0)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(tx(0), PAD.top - 10); ctx.lineTo(tx(0), CH - PAD.bottom + 18); ctx.stroke();
+  ctx.restore();
+  lbl('c¹ₜ  (young)', CW - PAD.right + 22, ty(0), 'left', 'middle', 12.5);
+  lbl('c²ₜ  (old)', tx(0), PAD.top - 14, 'center', 'bottom', 12.5);
+  lbl('0', tx(0) - 5, ty(0) + 5, 'right', 'top', 11, false, '#9a9aaa');
+  [0.5, 1.0, 1.5].forEach(v => {
+    ctx.save(); ctx.strokeStyle = '#aaa'; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(tx(v), ty(0) - 3); ctx.lineTo(tx(v), ty(0) + 3); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(tx(0) - 3, ty(v)); ctx.lineTo(tx(0) + 3, ty(v)); ctx.stroke();
+    ctx.restore();
+    lbl(v.toFixed(1), tx(v), ty(0) + 5, 'center', 'top', 10, false, '#777');
+    lbl(v.toFixed(1), tx(0) - 5, ty(v), 'right', 'middle', 10, false, '#777');
+  });
+}
+
+function drawIter(i, sub) {
+  if (i >= path.length) return;
+  const { c1, c2prev, c2next } = path[i];
+  if (!isFinite(c1) || c1 < xMin || c1 > xMax + 0.1) return;
+  const tealCol = '#1a6b5a', crimCol = '#9b2335';
+  const fade = Math.max(0.28, 1 - i * 0.09);
+
+  if (sub >= 1 && isFinite(c2prev) && isFinite(c2next)) {
+    // Vertical: (c1, c2prev) → (c1, c2next) [resource constraint → offer curve]
+    const y_from = Math.max(ty(Math.min(c2prev, yMax + 0.1)), PAD.top - 5);
+    const y_to = Math.max(ty(Math.min(c2next, yMax + 0.1)), PAD.top - 5);
+    ctx.save(); ctx.globalAlpha = fade;
+    arrow(tx(c1), y_from, tx(c1), y_to, tealCol, 2);
+    ctx.restore();
+    if (c2next >= yMin && c2next <= yMax) dot(c1, c2next, tealCol, 3.5);
+  }
+
+  if (sub >= 2 && isFinite(c2next) && !isNaN(c2next)) {
+    // Horizontal: (c1, c2next) → (S-c2next, c2next) [offer curve → resource constraint]
+    const c1next = S - c2next;
+    if (c1next >= xMin && c1next <= xMax && c2next >= yMin && c2next <= yMax) {
+      ctx.save(); ctx.globalAlpha = fade;
+      arrow(tx(c1), ty(c2next), tx(c1next), ty(c2next), crimCol, 2);
+      ctx.restore();
+      dot(c1next, c2next, crimCol, 3);
+    }
+  }
+}
+
+// ── Sidebar updates ───────────────────────────────────────────────────────────
+function updateSidebar() {
+  const b = beta;
+  const isSamuelson = b > w2 / w1;
+  const me = monetaryEq(b);
+
+  document.getElementById('regime-badge').className = 'regime-badge ' + (isSamuelson ? 'samuelson' : 'classical');
+  document.getElementById('regime-badge').textContent = isSamuelson
+    ? `Samuelson (β = ${b.toFixed(2)} > w₂/w₁ = ${(w2/w1).toFixed(2)})`
+    : `Classical (β = ${b.toFixed(2)} < w₂/w₁ = ${(w2/w1).toFixed(2)})`;
+
+  // Stability at autarky: |f'| = w2/(β·w1) = (w2/w1)/β
+  const stabA = cobwebDeriv(w2, b);
+  const stabM = isSamuelson ? cobwebDeriv(me.c2, b) : NaN;
+
+  const stableA = stabA < 1;
+  document.getElementById('stab-autarky').className = 'stab-box ' + (stableA ? 'stable' : 'unstable');
+  document.getElementById('stab-a-val').className = 'stab-val ' + (stableA ? 'stable' : 'unstable');
+  document.getElementById('stab-a-val').textContent = `|f ′| = ${stabA.toFixed(3)}`;
+  document.getElementById('stab-a-verdict').textContent = stableA ? '▸ stable' : '▸ unstable';
+
+  if (isSamuelson && isFinite(stabM)) {
+    const stableM = stabM < 1;
+    document.getElementById('stab-me').className = 'stab-box ' + (stableM ? 'stable' : 'unstable');
+    document.getElementById('stab-m-val').className = 'stab-val ' + (stableM ? 'stable' : 'unstable');
+    document.getElementById('stab-m-val').textContent = `|f ′| = ${stabM.toFixed(3)}`;
+    document.getElementById('stab-m-verdict').textContent = stableM ? '▸ stable' : '▸ unstable';
+    document.getElementById('stab-me').style.display = '';
+  } else {
+    document.getElementById('stab-me').style.display = isSamuelson ? '' : 'none';
+    document.getElementById('stab-m-val').textContent = 'No monetary eq.';
+    document.getElementById('stab-m-verdict').textContent = '(classical case)';
+    document.getElementById('stab-me').className = 'stab-box';
+  }
+
+  // Hint about c20
+  const me2 = isSamuelson ? me.c2 : null;
+  const hint = document.getElementById('c20-hint');
+  if (isSamuelson && me2) {
+    if (c20 < me2) hint.textContent = `Below monetary eq. (c²ₘ = ${me2.toFixed(3)}) → converges to autarky`;
+    else hint.textContent = `Above monetary eq. (c²ₘ = ${me2.toFixed(3)}) → diverges`;
+  } else {
+    hint.textContent = 'Classical case: only autarky equilibrium';
+  }
+}
+
+// ── Table ─────────────────────────────────────────────────────────────────────
+function updateTable(upTo) {
+  const tbody = document.getElementById('tbl-body');
+  tbody.innerHTML = '';
+  const row0 = document.createElement('tr');
+  row0.className = upTo === 0 ? 'active' : '';
+  const dist0 = Math.hypot(S - c20 - w1, c20 - w2).toFixed(3);
+  row0.innerHTML = `<td>0</td><td>—</td><td>${c20.toFixed(3)}</td><td>—</td><td>${(c20 - w2).toFixed(3)}</td><td>—</td><td>${dist0}</td>`;
+  tbody.appendChild(row0);
+  for (let i = 0; i < Math.min(upTo, path.length); i++) {
+    const { c1, c2next } = path[i];
+    const r = (isFinite(c2next) && c2next > 0 && c1 > 0) ? (c2next / (beta * c1)).toFixed(3) : '—';
+    const dist = (isFinite(c2next) && isFinite(c1)) ? Math.hypot(c1 - w1, c2next - w2).toFixed(3) : '—';
+    const row = document.createElement('tr');
+    row.className = i === upTo - 1 ? 'active' : '';
+    row.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${isFinite(c1) ? c1.toFixed(3) : '—'}</td>
+      <td>${isFinite(c2next) ? c2next.toFixed(3) : '∞'}</td>
+      <td>${isFinite(c1) ? (c1 - w1).toFixed(3) : '—'}</td>
+      <td>${isFinite(c2next) ? (c2next - w2).toFixed(3) : '∞'}</td>
+      <td>${r}</td>
+      <td>${dist}</td>
+    `;
+    tbody.appendChild(row);
+  }
+}
+
+function setStatus(msg) { document.getElementById('status').innerHTML = msg; }
+
+// ── Playback ─────────────────────────────────────────────────────────────────
+function getDelay() { return [1400, 900, 550, 320, 150][speedLevel - 1]; }
+
+function stopAnim() {
+  if (animTimer) { clearTimeout(animTimer); animTimer = null; }
+  document.getElementById('btn-play').textContent = '▶ Play';
+  document.getElementById('btn-play').className = 'primary';
+}
+
+function doAnimStep() {
+  if (currentStep >= path.length) {
+    stopAnim();
+    const last = path[path.length - 1];
+    if (last && last.diverged) setStatus('Path <strong>diverged</strong> — initial c²₀ is above the monetary equilibrium (unstable fixed point).');
+    else setStatus(`Converged to autarky (${w1.toFixed(2)}, ${w2.toFixed(2)}) after <strong>${path.length}</strong> iterations. Autarky is the <strong>stable</strong> fixed point.`);
+    return;
+  }
+  const { c1, c2prev, c2next } = path[currentStep];
+  if (animSubStep === 0) {
+    drawScene(currentStep, 1);
+    updateTable(currentStep + 1);
+    setStatus(`Step ${currentStep + 1}a — <strong>Vertical</strong> (offer curve): generation ${currentStep + 1} optimises → c²₍t+1₎ = <strong>${isFinite(c2next) ? c2next.toFixed(3) : '∞'}</strong>`);
+    animSubStep = 1;
+    animTimer = setTimeout(doAnimStep, getDelay());
+  } else {
+    drawScene(currentStep, 2);
+    const c1next = S - (isFinite(c2next) ? c2next : 0);
+    setStatus(`Step ${currentStep + 1}b — <strong>Horizontal</strong> (clearing): c¹₍t+1₎ = w₁+w₂ − c²₍t+1₎ = <strong>${c1next.toFixed(3)}</strong>`);
+    animSubStep = 0;
+    currentStep++;
+    updateTable(currentStep);
+    animTimer = setTimeout(doAnimStep, getDelay());
+  }
+}
+
+function init() {
+  stopAnim();
+  beta = parseFloat(document.getElementById('sl-beta').value);
+  c20 = parseFloat(document.getElementById('sl-c20').value);
+  nSteps = parseInt(document.getElementById('sl-nsteps').value);
+  speedLevel = parseInt(document.getElementById('sl-speed').value);
+  currentStep = 0; animSubStep = 0;
+  updateSidebar();
+  buildPath();
+  drawScene(0, 0);
+  updateTable(0);
+  setStatus('Press <strong>Play</strong> or <strong>Step →</strong> to run the algorithm.');
+}
+
+// ── Events ────────────────────────────────────────────────────────────────────
+document.getElementById('sl-beta').addEventListener('input', function () {
+  document.getElementById('beta-val').textContent = parseFloat(this.value).toFixed(2);
+  init();
+});
+document.getElementById('sl-c20').addEventListener('input', function () {
+  document.getElementById('c20-val').textContent = parseFloat(this.value).toFixed(3);
+  init();
+});
+document.getElementById('sl-nsteps').addEventListener('input', function () {
+  document.getElementById('nsteps-val').textContent = this.value; init();
+});
+document.getElementById('sl-speed').addEventListener('input', function () {
+  speedLevel = parseInt(this.value);
+  document.getElementById('speed-val').textContent = ['Very slow', 'Slow', 'Normal', 'Fast', 'Fast ×2'][speedLevel - 1];
+});
+document.getElementById('btn-play').addEventListener('click', function () {
+  if (animTimer) { stopAnim(); return; }
+  this.textContent = '⏸ Pause'; this.className = '';
+  doAnimStep();
+});
+document.getElementById('btn-step').addEventListener('click', function () {
+  stopAnim();
+  if (currentStep >= path.length) return;
+  if (animSubStep === 0) {
+    drawScene(currentStep, 1);
+    const { c2next } = path[currentStep];
+    setStatus(`Step ${currentStep + 1}a — <strong>Vertical</strong>: c²₍t+1₎ = <strong>${isFinite(c2next) ? c2next.toFixed(3) : '∞'}</strong>`);
+    animSubStep = 1;
+  } else {
+    drawScene(currentStep, 2);
+    const { c2next } = path[currentStep];
+    const c1next = S - (isFinite(c2next) ? c2next : 0);
+    setStatus(`Step ${currentStep + 1}b — <strong>Horizontal</strong>: c¹₍t+1₎ = <strong>${c1next.toFixed(3)}</strong>`);
+    animSubStep = 0; currentStep++;
+    updateTable(currentStep);
+  }
+});
+document.getElementById('btn-reset').addEventListener('click', init);
+document.getElementById('btn-all').addEventListener('click', function () {
+  stopAnim();
+  currentStep = path.length; animSubStep = 0;
+  drawScene(path.length, 2); updateTable(path.length);
+  setStatus(`All <strong>${path.length}</strong> iterations shown.`);
+});
+
+init();
+</script>
+</body>
+</html>
