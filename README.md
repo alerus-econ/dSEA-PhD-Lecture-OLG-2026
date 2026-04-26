@@ -1,12 +1,15 @@
 # dSEA-PhD-Lecture-OLG-2026: OLG Modeling
 
-## Exam:
+## Exam
 Choose one of the following papers (TO BE ADDED) and prepare a replication report using the materials provided in the Replication "Material folder".
 
 Your report should include:
 i) a clear description of the paper’s research question and its main contribution to the literature;
 ii) a reproduction of a selected set of the paper’s original results;
 iii) an extension of the analysis, such as, for example, replicating the results using alternative data, modifying or relaxing key assumptions, extending the model, or conducting additional policy experiments.
+
+## Slides and Codes
+The course slides are available in the "Slides" folder, and the corresponding Python code can be found in the "Codes" folder. To run the code online, replace “https://github.com” with “https://colab.research.google.com/github” in the Code repository URL.
 
 ## Books
 - "A Theory of Economic Growth: Dynamics and Policy in Overlapping Generations" by David de la Croix and Philippe Michel
@@ -15,7 +18,7 @@ iii) an extension of the analysis, such as, for example, replicating the results
 - "Public Economics: The Macroeconomic Perspective" by Burkhard Heer
 - "Dynamic General Equilibrium Modelling, Computational Methods and Applications" by Burkhard Heer and Alfred Maußner
 
-## must-read papers
+## Must-read papers
 - [Auerbach & Kotlikoff (1987)](https://kotlikoff.net/wp-content/uploads/2019/03/Dynamic-Fiscal-Policy_1.pdf)
 - [Aiyagari (1994)](http://drphilipshaw.com/AyagariQJE94.pdf)
 - [Huggett (1996)](http://drphilipshaw.com/Huggett%201996.pdf)
