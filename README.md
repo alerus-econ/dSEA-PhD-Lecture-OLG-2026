@@ -1,8 +1,14 @@
-# dSEA-PhD-Lecture-OLG-2026
+# dSEA-PhD-Lecture-OLG-2026: OLG Modeling
 
-# OLG Modeling
+## Exam:
+Choose one of the following papers (TO BE ADDED) and prepare a replication report using the materials provided in the Replication "Material folder".
 
-## books
+Your report should include:
+i) a clear description of the paper’s research question and its main contribution to the literature;
+ii) a reproduction of a selected set of the paper’s original results;
+iii) an extension of the analysis, such as, for example, replicating the results using alternative data, modifying or relaxing key assumptions, extending the model, or conducting additional policy experiments.
+
+## Books
 - "A Theory of Economic Growth: Dynamics and Policy in Overlapping Generations" by David de la Croix and Philippe Michel
 - "Recursive Macroeconomic Theory" by Lars Ljungqvist and Thomas J. Sargent
 - "Overlapping Generations: Methods, Models, and Morphology" by Spear and Young
@@ -14,8 +20,6 @@
 - [Aiyagari (1994)](http://drphilipshaw.com/AyagariQJE94.pdf)
 - [Huggett (1996)](http://drphilipshaw.com/Huggett%201996.pdf)
 - [Krusell & Smith (1998)](http://www.econ.yale.edu/smith/250034.pdf)
-
-## papers for the assignment (TO BE ADDED)
 
 ## Other repo and resources
 ### For Coding
