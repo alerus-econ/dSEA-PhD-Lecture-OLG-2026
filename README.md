@@ -9,7 +9,12 @@ ii) a reproduction of a selected set of the paper’s original results;
 iii) an extension of the analysis, such as, for example, replicating the results using alternative data, modifying or relaxing key assumptions, extending the model, or conducting additional policy experiments.
 
 ## Slides and Codes
-The course slides are available in the "Slides" folder, and the corresponding Python code can be found in the "Codes" folder. To run the code online, replace “https://github.com” with “https://colab.research.google.com/github” in the Code repository URL.
+The course slides are available in the "Slides" folder, and the corresponding Python code can be found in the "Codes" folder. To run the code online, you need to provide authorization, proceeding as follows:
+- Open Colab (just go to colab.research.google.com).
+- Click File → Open notebook.
+- Select the GitHub tab on the left.
+- Check the box that says "Include private repos".
+- A GitHub authorization popup will appear — sign in and grant access to the Google Colaboratory app for your account/organization.
 
 ## Books
 - "A Theory of Economic Growth: Dynamics and Policy in Overlapping Generations" by David de la Croix and Philippe Michel
