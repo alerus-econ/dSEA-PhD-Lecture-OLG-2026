@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Golden Section Search — Interactive Demo</title>
+<style>
+  :root {
+    --navy: #1E2761;
+    --red: #C0392B;
+    --gray: #5A6172;
+    --ice: #C8D8E8;
+    --bg: #fafaf8;
+    --card: #ffffff;
+    --border: #e5e5e0;
+    --teal: #0F6E56;
+    --purple: #534AB7;
+    --muted: #888780;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: #2c2c2a;
+    padding: 32px 24px;
+    line-height: 1.5;
+  }
+  .container { max-width: 980px; margin: 0 auto; }
+  h1 {
+    color: var(--navy);
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+  }
+  .subtitle {
+    color: var(--gray);
+    font-size: 14px;
+    margin: 0 0 24px;
+  }
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 220px;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 760px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 7px 0;
+    border-bottom: 1px dashed var(--border);
+    font-size: 13px;
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-label { color: var(--gray); }
+  .info-value {
+    font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
+    font-weight: 500;
+    color: var(--navy);
+    font-size: 12px;
+  }
+  .controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    align-items: center;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  button {
+    padding: 8px 14px;
+    border: 1px solid var(--navy);
+    background: white;
+    color: var(--navy);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    transition: background 0.15s, color 0.15s;
+  }
+  button:hover { background: var(--navy); color: white; }
+  button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: white;
+    color: var(--navy);
+  }
+  select {
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: white;
+    font-size: 13px;
+    font-family: inherit;
+    color: #2c2c2a;
+    cursor: pointer;
+  }
+  .legend {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--gray);
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border);
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .legend-line { width: 18px; height: 2px; }
+  .status {
+    font-size: 13px;
+    color: var(--gray);
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: #f5f5f0;
+    border-left: 3px solid var(--navy);
+    border-radius: 0 4px 4px 0;
+    min-height: 18px;
+  }
+  .status.converged {
+    border-left-color: var(--teal);
+    color: var(--teal);
+    font-weight: 500;
+    background: #eef7f3;
+  }
+  .panel-title {
+    margin: 0 0 4px;
+    color: var(--navy);
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .panel-sub {
+    margin: 0 0 12px;
+    font-size: 13px;
+    color: var(--gray);
+  }
+  .footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 24px;
+    padding-top: 12px;
+  }
+  .formula {
+    font-family: 'Cambria Math', 'Times New Roman', serif;
+    color: var(--navy);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Golden section search</h1>
+  <p class="subtitle">Bracket-based maximization of a unimodal function on a closed interval — derivative-free, one new evaluation per iteration.</p>
+
+  <div class="panel">
+    <div class="layout">
+      <div>
+        <svg id="main-plot" viewBox="0 0 640 320" style="width: 100%; height: auto; display: block;"></svg>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background: var(--purple);"></div>bracket [a, b]</div>
+          <div class="legend-item"><div class="legend-dot" style="background: var(--teal);"></div>winning point</div>
+          <div class="legend-item"><div class="legend-dot" style="background: var(--muted);"></div>losing point</div>
+          <div class="legend-item"><div class="legend-line" style="background: var(--navy);"></div>f(x)</div>
+        </div>
+        <div class="status" id="status">Initial bracket. Two interior points placed at golden-ratio positions. Click Step to compare f(x₁) vs f(x₂).</div>
+      </div>
+      <div>
+        <div class="info-row"><span class="info-label">iteration</span><span class="info-value" id="i-iter">0</span></div>
+        <div class="info-row"><span class="info-label">a</span><span class="info-value" id="i-a">—</span></div>
+        <div class="info-row"><span class="info-label">b</span><span class="info-value" id="i-b">—</span></div>
+        <div class="info-row"><span class="info-label">x₁</span><span class="info-value" id="i-x1">—</span></div>
+        <div class="info-row"><span class="info-label">x₂</span><span class="info-value" id="i-x2">—</span></div>
+        <div class="info-row"><span class="info-label">f(x₁)</span><span class="info-value" id="i-f1">—</span></div>
+        <div class="info-row"><span class="info-label">f(x₂)</span><span class="info-value" id="i-f2">—</span></div>
+        <div class="info-row"><span class="info-label">b − a</span><span class="info-value" id="i-w">—</span></div>
+        <div class="info-row"><span class="info-label">f-evaluations</span><span class="info-value" id="i-evals">—</span></div>
+      </div>
+    </div>
+    <div class="controls">
+      <select id="fn-select" aria-label="Select function">
+        <option value="parabola">f(x) = 4 − 0.6(x−2)²</option>
+        <option value="sin">f(x) = sin(x) + 0.2x</option>
+        <option value="bellman">f(x) = log(x) + 0.5(5−x)</option>
+        <option value="exp">f(x) = x · exp(−0.5x)</option>
+        <option value="crra">f(x) = c^(1−σ)/(1−σ),  σ=2,  c on budget line</option>
+      </select>
+      <button id="btn-step">Step</button>
+      <button id="btn-run">Run</button>
+      <button id="btn-reset">Reset</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <p class="panel-title">Convergence diagnostic</p>
+    <p class="panel-sub">Bracket width <span class="formula">b − a</span> against the theoretical contraction <span class="formula">ρ<sup>n</sup>(b₀ − a₀)</span> on a log scale. Empirical and theoretical lines should overlap exactly — golden section is deterministic.</p>
+    <svg id="conv-plot" viewBox="0 0 640 220" style="width: 100%; height: auto; display: block;"></svg>
+  </div>
+
+  <div class="footer">
+    ρ = (√5 − 1)/2 ≈ 0.6180  ·  one new f-evaluation per iteration  ·  linear convergence with rate ρ
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  const RHO = (Math.sqrt(5) - 1) / 2;
+  const TOL = 1e-5;
+  const MAX_ITER = 60;
+
+  // CRRA: budget c1 = x, c2 = 2 - 0.5*x; total utility u(c1) + 0.95*u(c2), u = c^(1-2)/(1-2) = -1/c
+  // Maximize x in [0.1, 3.9]. Marginal: -1/c1^2 - 0.95*(-1/c2^2)*(-0.5) =0 ... unimodal.
+  const FUNCTIONS = {
+    parabola: { f: x => 4 - 0.6 * (x - 2) ** 2, a: 0, b: 5, label: '4 − 0.6(x−2)²', ymin: -1.9, ymax: 4.6 },
+    sin:      { f: x => Math.sin(x) + 0.2 * x,  a: 0, b: Math.PI + 0.5, label: 'sin(x) + 0.2x', ymin: -0.2, ymax: 1.8 },
+    bellman:  { f: x => Math.log(x + 0.05) + 0.5 * (5 - x), a: 0.05, b: 5, label: 'log(x) + 0.5(5−x)', ymin: -1.5, ymax: 3 },
+    exp:      { f: x => x * Math.exp(-0.5 * x), a: 0, b: 8, label: 'x · exp(−0.5x)', ymin: -0.05, ymax: 0.9 },
+    crra:     {
+      f: x => {
+        const c1 = x, c2 = 2 - 0.5 * x;
+        if (c1 <= 0 || c2 <= 0) return -1e6;
+        return -1/c1 - 0.95/c2;
+      },
+      a: 0.05, b: 3.9, label: 'CRRA (σ=2) two-period saving', ymin: -8, ymax: -1
+    }
+  };
+
+  let state = {};
+  let history = [];
+  let runTimer = null;
+
+  function init(fnKey) {
+    const cfg = FUNCTIONS[fnKey];
+    const a = cfg.a, b = cfg.b;
+    state = {
+      cfg, fnKey,
+      a, b, a0: a, b0: b,
+      x1: b - RHO * (b - a),
+      x2: a + RHO * (b - a),
+      iter: 0,
+      evals: 2,
+      msg: 'Initial bracket. Two interior points placed at golden-ratio positions. Click Step to compare f(x₁) vs f(x₂).',
+      converged: false
+    };
+    state.f1 = cfg.f(state.x1);
+    state.f2 = cfg.f(state.x2);
+    history = [{ iter: 0, width: b - a }];
+    render();
+  }
+
+  function step() {
+    if (state.converged || state.iter >= MAX_ITER) return;
+    const cfg = state.cfg;
+    if (state.f1 > state.f2) {
+      state.b = state.x2;
+      state.x2 = state.x1;
+      state.f2 = state.f1;
+      state.x1 = state.b - RHO * (state.b - state.a);
+      state.f1 = cfg.f(state.x1);
+      state.msg = 'f(x₁) > f(x₂): max in [a, x₂]. Right segment discarded; old x₁ → new x₂ (reused).';
+    } else {
+      state.a = state.x1;
+      state.x1 = state.x2;
+      state.f1 = state.f2;
+      state.x2 = state.a + RHO * (state.b - state.a);
+      state.f2 = cfg.f(state.x2);
+      state.msg = 'f(x₂) > f(x₁): max in [x₁, b]. Left segment discarded; old x₂ → new x₁ (reused).';
+    }
+    state.iter++;
+    state.evals++;
+    history.push({ iter: state.iter, width: state.b - state.a });
+    if (state.b - state.a < TOL) {
+      state.converged = true;
+      const xstar = (state.a + state.b) / 2;
+      state.msg = 'Converged after ' + state.iter + ' iterations. Maximum ≈ ' + xstar.toFixed(6) + ', f ≈ ' + cfg.f(xstar).toFixed(6) + '.';
+    }
+    render();
+  }
+
+  // ===== main plot =====
+  function renderMain() {
+    const PAD_L = 50, PAD_R = 24, PAD_T = 32, PAD_B = 36;
+    const W = 640, H = 320;
+    const PW = W - PAD_L - PAD_R, PH = H - PAD_T - PAD_B;
+    const cfg = state.cfg;
+    const xPad = 0.04 * (state.b0 - state.a0);
+    const xMin = state.a0 - xPad, xMax = state.b0 + xPad;
+    const yMin = cfg.ymin, yMax = cfg.ymax;
+    const sx = x => PAD_L + (x - xMin) / (xMax - xMin) * PW;
+    const sy = y => PAD_T + (yMax - y) / (yMax - yMin) * PH;
+
+    const winColor = '#0F6E56';
+    const lossColor = '#888780';
+    const bracketColor = '#534AB7';
+    const x1IsWin = state.f1 > state.f2;
+
+    let h = '';
+
+    // bracket region
+    h += '<rect x="' + sx(state.a).toFixed(1) + '" y="' + PAD_T + '" width="' + (sx(state.b)-sx(state.a)).toFixed(1) + '" height="' + PH + '" fill="' + bracketColor + '" opacity="0.08"/>';
+
+    // discarded regions (full extent outside bracket but inside initial bracket)
+    if (state.iter > 0) {
+      if (state.a > state.a0) {
+        h += '<rect x="' + sx(state.a0).toFixed(1) + '" y="' + PAD_T + '" width="' + (sx(state.a)-sx(state.a0)).toFixed(1) + '" height="' + PH + '" fill="#C0392B" opacity="0.04"/>';
+      }
+      if (state.b < state.b0) {
+        h += '<rect x="' + sx(state.b).toFixed(1) + '" y="' + PAD_T + '" width="' + (sx(state.b0)-sx(state.b)).toFixed(1) + '" height="' + PH + '" fill="#C0392B" opacity="0.04"/>';
+      }
+    }
+
+    // axis line at y=0 if visible
+    if (yMin < 0 && yMax > 0) {
+      h += '<line x1="' + sx(xMin) + '" y1="' + sy(0) + '" x2="' + sx(xMax) + '" y2="' + sy(0) + '" stroke="#cccccc" stroke-width="1"/>';
+    }
+
+    // x ticks
+    const tickCount = 6;
+    for (let i = 0; i <= tickCount; i++) {
+      const xv = state.a0 + (state.b0 - state.a0) * i / tickCount;
+      const tx = sx(xv);
+      h += '<line x1="' + tx.toFixed(1) + '" y1="' + (PAD_T + PH) + '" x2="' + tx.toFixed(1) + '" y2="' + (PAD_T + PH + 4) + '" stroke="#aaa" stroke-width="1"/>';
+      h += '<text x="' + tx.toFixed(1) + '" y="' + (PAD_T + PH + 16) + '" text-anchor="middle" fill="#888" font-size="11">' + xv.toFixed(2) + '</text>';
+    }
+
+    // y ticks
+    for (let i = 0; i <= 4; i++) {
+      const yv = yMin + (yMax - yMin) * i / 4;
+      const ty = sy(yv);
+      h += '<line x1="' + (PAD_L - 4) + '" y1="' + ty.toFixed(1) + '" x2="' + PAD_L + '" y2="' + ty.toFixed(1) + '" stroke="#aaa" stroke-width="1"/>';
+      h += '<text x="' + (PAD_L - 8) + '" y="' + (ty + 3).toFixed(1) + '" text-anchor="end" fill="#888" font-size="11">' + yv.toFixed(2) + '</text>';
+    }
+
+    // axes box
+    h += '<rect x="' + PAD_L + '" y="' + PAD_T + '" width="' + PW + '" height="' + PH + '" fill="none" stroke="#ddd" stroke-width="1"/>';
+
+    // curve
+    let curve = '';
+    for (let i = 0; i <= 250; i++) {
+      const x = xMin + (xMax - xMin) * i / 250;
+      const y = cfg.f(x);
+      if (!isFinite(y)) continue;
+      const cx = sx(x), cy = Math.max(PAD_T, Math.min(PAD_T + PH, sy(y)));
+      curve += (curve === '' ? 'M' : 'L') + cx.toFixed(2) + ',' + cy.toFixed(2) + ' ';
+    }
+    h += '<path d="' + curve + '" fill="none" stroke="#1E2761" stroke-width="2" stroke-linejoin="round"/>';
+
+    // bracket boundary lines
+    [['a', state.a], ['b', state.b]].forEach(function(p) {
+      const lab = p[0], v = p[1];
+      h += '<line x1="' + sx(v).toFixed(1) + '" y1="' + PAD_T + '" x2="' + sx(v).toFixed(1) + '" y2="' + (PAD_T + PH) + '" stroke="' + bracketColor + '" stroke-width="1.5" stroke-dasharray="4 3"/>';
+      h += '<text x="' + sx(v).toFixed(1) + '" y="' + (PAD_T - 8) + '" text-anchor="middle" fill="' + bracketColor + '" font-size="13" font-weight="600">' + lab + '</text>';
+    });
+
+    // interior points
+    [['x\u2081', state.x1, state.f1, x1IsWin], ['x\u2082', state.x2, state.f2, !x1IsWin]].forEach(function(p) {
+      const lab = p[0], x = p[1], fx = p[2], win = p[3];
+      const c = win ? winColor : lossColor;
+      const baseY = (yMin > 0) ? sy(yMin) : sy(0);
+      h += '<line x1="' + sx(x).toFixed(1) + '" y1="' + baseY.toFixed(1) + '" x2="' + sx(x).toFixed(1) + '" y2="' + sy(fx).toFixed(1) + '" stroke="' + c + '" stroke-width="1" opacity="0.4"/>';
+      h += '<circle cx="' + sx(x).toFixed(1) + '" cy="' + sy(fx).toFixed(1) + '" r="5" fill="' + c + '" stroke="white" stroke-width="1.5"/>';
+      h += '<text x="' + sx(x).toFixed(1) + '" y="' + (sy(fx) - 11).toFixed(1) + '" text-anchor="middle" fill="' + c + '" font-size="13" font-weight="600">' + lab + '</text>';
+    });
+
+    // axis labels
+    h += '<text x="' + (PAD_L + PW / 2) + '" y="' + (H - 4) + '" text-anchor="middle" fill="#666" font-size="12" font-style="italic">x</text>';
+    h += '<text x="' + (PAD_L - 36) + '" y="' + (PAD_T + 12) + '" text-anchor="start" fill="#666" font-size="12" font-style="italic">f(x)</text>';
+
+    document.getElementById('main-plot').innerHTML = h;
+  }
+
+  // ===== convergence plot =====
+  function renderConvergence() {
+    const PAD_L = 56, PAD_R = 16, PAD_T = 16, PAD_B = 36;
+    const W = 640, H = 220;
+    const PW = W - PAD_L - PAD_R, PH = H - PAD_T - PAD_B;
+
+    const w0 = state.b0 - state.a0;
+    const maxIter = 40;
+    const yMin = -8, yMax = Math.ceil(Math.log10(w0));
+
+    const sx = i => PAD_L + i / maxIter * PW;
+    const sy = logw => PAD_T + (yMax - logw) / (yMax - yMin) * PH;
+
+    let h = '';
+
+    // box
+    h += '<rect x="' + PAD_L + '" y="' + PAD_T + '" width="' + PW + '" height="' + PH + '" fill="none" stroke="#ddd" stroke-width="1"/>';
+
+    // y grid (log decades)
+    for (let exp = yMin; exp <= yMax; exp += 2) {
+      const y = sy(exp);
+      h += '<line x1="' + PAD_L + '" y1="' + y + '" x2="' + (PAD_L + PW) + '" y2="' + y + '" stroke="#eee" stroke-width="1"/>';
+      h += '<text x="' + (PAD_L - 6) + '" y="' + (y + 3) + '" text-anchor="end" fill="#888" font-size="10">10' + (exp >= 0 ? '' : '⁻') + Math.abs(exp) + '</text>';
+    }
+
+    // x ticks
+    for (let i = 0; i <= maxIter; i += 5) {
+      const tx = sx(i);
+      h += '<line x1="' + tx + '" y1="' + (PAD_T + PH) + '" x2="' + tx + '" y2="' + (PAD_T + PH + 4) + '" stroke="#aaa"/>';
+      h += '<text x="' + tx + '" y="' + (PAD_T + PH + 16) + '" text-anchor="middle" fill="#888" font-size="10">' + i + '</text>';
+    }
+    h += '<text x="' + (PAD_L + PW / 2) + '" y="' + (H - 4) + '" text-anchor="middle" fill="#666" font-size="11">iteration n</text>';
+    h += '<text x="' + (PAD_L - 38) + '" y="' + (PAD_T + 8) + '" text-anchor="start" fill="#666" font-size="11">b − a</text>';
+
+    // theoretical line
+    let tline = '';
+    for (let n = 0; n <= maxIter; n++) {
+      const logw = Math.log10(Math.pow(RHO, n) * w0);
+      const cy = Math.max(PAD_T, Math.min(PAD_T + PH, sy(logw)));
+      tline += (n === 0 ? 'M' : 'L') + sx(n) + ',' + cy + ' ';
+    }
+    h += '<path d="' + tline + '" fill="none" stroke="#C0392B" stroke-width="1.5" stroke-dasharray="5 3"/>';
+
+    // empirical line
+    if (history.length > 1) {
+      let eline = '';
+      history.forEach((p, i) => {
+        const logw = Math.log10(Math.max(p.width, 1e-12));
+        const cy = Math.max(PAD_T, Math.min(PAD_T + PH, sy(logw)));
+        eline += (i === 0 ? 'M' : 'L') + sx(p.iter) + ',' + cy + ' ';
+      });
+      h += '<path d="' + eline + '" fill="none" stroke="#1E2761" stroke-width="2"/>';
+    }
+
+    // empirical dots
+    history.forEach(p => {
+      const logw = Math.log10(Math.max(p.width, 1e-12));
+      const cy = Math.max(PAD_T, Math.min(PAD_T + PH, sy(logw)));
+      h += '<circle cx="' + sx(p.iter) + '" cy="' + cy + '" r="3" fill="#1E2761"/>';
+    });
+
+    // legend
+    h += '<g transform="translate(' + (PAD_L + PW - 180) + ', ' + (PAD_T + 8) + ')">';
+    h += '<rect x="-6" y="-6" width="180" height="40" fill="white" stroke="#e5e5e0" stroke-width="0.5" rx="3"/>';
+    h += '<line x1="0" y1="3" x2="22" y2="3" stroke="#1E2761" stroke-width="2"/>';
+    h += '<circle cx="11" cy="3" r="2.5" fill="#1E2761"/>';
+    h += '<text x="28" y="6" font-size="11" fill="#1E2761">empirical b − a</text>';
+    h += '<line x1="0" y1="22" x2="22" y2="22" stroke="#C0392B" stroke-width="1.5" stroke-dasharray="5 3"/>';
+    h += '<text x="28" y="25" font-size="11" fill="#C0392B">theoretical ρⁿ(b₀ − a₀)</text>';
+    h += '</g>';
+
+    document.getElementById('conv-plot').innerHTML = h;
+  }
+
+  function render() {
+    renderMain();
+    renderConvergence();
+    document.getElementById('i-iter').textContent = state.iter;
+    document.getElementById('i-a').textContent = state.a.toFixed(4);
+    document.getElementById('i-b').textContent = state.b.toFixed(4);
+    document.getElementById('i-x1').textContent = state.x1.toFixed(4);
+    document.getElementById('i-x2').textContent = state.x2.toFixed(4);
+    document.getElementById('i-f1').textContent = state.f1.toFixed(4);
+    document.getElementById('i-f2').textContent = state.f2.toFixed(4);
+    document.getElementById('i-w').textContent = (state.b - state.a).toExponential(2);
+    document.getElementById('i-evals').textContent = state.evals;
+    const statusEl = document.getElementById('status');
+    statusEl.textContent = state.msg;
+    statusEl.classList.toggle('converged', state.converged);
+    document.getElementById('btn-step').disabled = state.converged;
+  }
+
+  document.getElementById('btn-step').addEventListener('click', step);
+  document.getElementById('btn-reset').addEventListener('click', () => {
+    if (runTimer) { clearInterval(runTimer); runTimer = null; document.getElementById('btn-run').textContent = 'Run'; }
+    init(state.fnKey);
+  });
+  document.getElementById('btn-run').addEventListener('click', () => {
+    const btn = document.getElementById('btn-run');
+    if (runTimer) {
+      clearInterval(runTimer);
+      runTimer = null;
+      btn.textContent = 'Run';
+    } else {
+      btn.textContent = 'Pause';
+      runTimer = setInterval(() => {
+        if (state.converged) {
+          clearInterval(runTimer);
+          runTimer = null;
+          btn.textContent = 'Run';
+          return;
+        }
+        step();
+      }, 320);
+    }
+  });
+  document.getElementById('fn-select').addEventListener('change', e => {
+    if (runTimer) { clearInterval(runTimer); runTimer = null; document.getElementById('btn-run').textContent = 'Run'; }
+    init(e.target.value);
+  });
+
+  init('parabola');
+})();
+</script>
+</body>
+</html>
