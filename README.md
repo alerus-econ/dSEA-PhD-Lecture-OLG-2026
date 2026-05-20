@@ -1,7 +1,7 @@
 # dSEA-PhD-Lecture-OLG-2026: OLG Modeling
 
 ## Exam
-Choose one of the following papers (TO BE ADDED) and prepare a replication report using the materials provided in the "Replication Material" folder.
+Choose one of the following papers reported in "Replication Material" and prepare a replication report using the materials provided in the that folder.
 
 Your report should include:
 i) a clear description of the paper’s research question and its main contribution to the literature;
